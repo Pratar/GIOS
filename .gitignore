@@ -1,0 +1,10 @@
+.cursorrules
+
+MANIFEST
+*.log
+
+# documentation
+source/_llm/
+
+# Environments
+.env

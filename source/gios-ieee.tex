@@ -1,0 +1,840 @@
+\documentclass[conference]{IEEEtran}
+
+% Minimal, compile-safe packages
+\usepackage{amsmath,amssymb}
+\usepackage{array}
+\usepackage{url}
+\usepackage[section]{placeins}
+
+\newcommand{\iverson}[1]{\mathbf{1}\!\left[#1\right]}
+
+\newcommand{\guardSAFE}{U_t<U_{\min}\ \lor\ \mathrm{ErrRate}_t>\epsilon_{\max}}
+\newcommand{\guardREC}{s_t=\mathtt{SAFE}\ \land\ \mathrm{ErrRate}_t\le\epsilon_{\max}\ \land\ (t-t_{\mathrm{SAFE}})\ge h}
+
+\title{GIOS: Goal-Integrated Operating System\\ for Reasoning and Execution}
+\author{\IEEEauthorblockN{Mikhail Nazarenko}
+\IEEEauthorblockA{
+Email: mikhail.nazarenko@gmail.com}
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The paper presents the finalized GIOS specification with all previously omitted aspects integrated and formalized: context scoping, role assignment, composition, glossary and catalogue completeness, linkage budgets, growth control, naming and authoring rules, source and regression safety, lexical hygiene, dependency constraints, notational independence, bias control, DRR no-loss tracing, optimization of glossary readability vs. ambiguity, acceptance criteria, and quality metrics. Additions include a unified acceptance gate, extended optimization constraints, fuzzy quality aggregation, explicit metric thresholds, bridge schema, link-cost units, roles/permissions, assurance thresholds, and conformance artifacts.
+\end{abstract}
+
+\section{Overview}
+Let $\mathcal{C}$ be the set of rooms (contexts). Each artefact $a$ is mapped to rooms via
+$c(a)\subseteq \mathcal{C}$. A policy $\pi\in\Pi$ issues a decision $\pi(x,c)$ on input $x$ in room
+$c\in\mathcal{C}$. Utility is $J(\pi(x,c))$ with expectation $\mathbb{E}[J]$. Reading cost is
+$\mathsf{Read}(a)$ with penalty $\lambda_{\mathrm{read}}>0$. The adequacy indicator is
+$\mathsf{Adeq}\in[0,1]$.
+
+\subsection{Roles and permissions}
+Let $\mathsf{Agents}$ be the set of agents and let $R\in{0,1}^{|\mathsf{Agents}|\times|\mathcal{C}|}$ be the room-permission matrix:
+\begin{equation}
+\label{eq:roles-perm}
+\begin{aligned}
+\mathrm{Perm}(u,c)&=1\iff R_{u,c}=1,\\
+\pi\ \text{valid in }c&\Rightarrow \mathrm{Perm}(\mathrm{owner}(\pi),c)=1.
+\end{aligned}
+\end{equation}
+For an artefact owner $\mathrm{own}(a)$ the edit predicate is
+\begin{equation}
+\label{eq:roles-edit}
+\mathrm{MayEdit}(a,c)=1\iff \mathrm{Perm}(\mathrm{own}(a),c)=1\wedge c\in c(a).
+\end{equation}
+
+\subsection{Runtime loop}
+At step $t$: observe $o_t$, pick $y_t\sim\pi(\,\cdot\,|o_t,c)$, apply $y_t$, log $(o_t,y_t,c)$.
+Terminate if $U_t<U_{\min}$ or enter safe mode.
+
+\paragraph{Safe-mode automaton}
+\begin{equation}
+\label{eq:safe-mode}
+\begin{aligned}
+s_{t+1}&=\mathtt{SAFE}    &&\text{if G1},\\
+       & =\mathtt{RECOVER}&&\text{if G2},\\
+       & =\mathtt{RUN}    &&\text{otherwise.}
+\end{aligned}
+\end{equation}
+
+\paragraph{Recover hold-time}
+On entry to \texttt{SAFE}, record $t_{\mathrm{SAFE}}$; transition to \texttt{RECOVER}
+only if $(t-t_{\mathrm{SAFE}})\ge h$ and $\mathrm{ErrRate}_t\le \epsilon_{\max}$.
+
+\noindent\textit{Guards:}
+\[
+\begin{aligned}
+\text{G1: }&\ U_t < U_{\min}\ \lor\ \mathrm{ErrRate}_t > \epsilon_{\max},\\
+\text{G2: }&\ s_t=\mathtt{SAFE}\ \land\ \mathrm{ErrRate}_t\le\epsilon_{\max}\ \land\ (t-t_{\mathrm{SAFE}})\ge h.
+\end{aligned}
+\]
+
+\section{Objective}
+\begin{equation}
+\label{eq:obj}
+\begin{aligned}
+\max_{a\in\mathcal{A},\,\pi\in\Pi}\quad
+&\mathbb{E}\!\left[J(\pi(x,c))\right]
+-\lambda_{\mathrm{read}}\,\mathsf{Read}(a)\\
+\text{s.t.}\quad & \mathtt{WF\_PartE}=1.
+\end{aligned}
+\end{equation}
+
+\subsection{Unified optimization (extended constraints)}
+\begin{equation}
+\label{eq:obj-extended}
+\begin{aligned}
+\max_{a\in\mathcal{A},\,\pi\in\Pi}\quad
+&\mathbb{E}\!\left[J(\pi(x,c))\right]
+-\lambda_{\mathrm{read}}\,\mathsf{Read}(a)\\
+\text{s.t.}\quad&
+\mathtt{WF\_PartE}=1,\ \mathtt{WF\_PartF}=1,\ \mathtt{WF\_G}=1.
+\end{aligned}
+\end{equation}
+
+\section{Well-Formedness: Part E (Expanded)}
+\subsection{Aggregate definition}
+\begin{equation}
+\label{eq:wf-part-e}
+\begin{aligned}
+\mathtt{WF\_PartE}
+&=\Big(\!\bigwedge_{S\in\{\mathtt{E.1},\ldots,\mathtt{E.14}\}}\mathtt{WF\_S}\Big)\\
+&\qquad{}\wedge\Big(\!\bigwedge_{j=1}^{4}\mathrm{GR}_{j}\Big)
+\wedge\Big(\!\bigwedge_{i=1}^{11}P_{i}\Big).
+\end{aligned}
+\end{equation}
+
+\subsection{Selected elemental rules E.1..E.14 (closed form)}
+\noindent\emph{E.1 DevOps lexical firewall}:
+\begin{equation}
+\label{eq:e1}
+\mathtt{WF_E.1}(a)=\mathbf{1}!\left[\forall t\in \mathcal{L}{\mathrm{ban}}:\ \mathrm{freq}{a}(t)=0\right].
+\end{equation}
+
+\noindent\emph{E.2 Notational independence}:
+\begin{equation}
+\label{eq:e2}
+\begin{aligned}
+&\forall a,\ \forall \mathrm{f}_1,\mathrm{f}_2:\ 
+\mathsf{Render}(a,\mathrm{f}_1)\equiv \mathsf{Render}(a,\mathrm{f}_2)\\
+&\Rightarrow\ 
+\mathsf{Sem}(\mathsf{Render}(a,\mathrm{f}_1))=\mathsf{Sem}(\mathsf{Render}(a,\mathrm{f}_2)).
+\end{aligned}
+\end{equation}
+
+\noindent\emph{E.3 Unidirectional dependency}:
+\begin{equation}
+\label{eq:e3}
+\mathtt{WF_E.3}=\mathbf{1}[\text{dependency graph on families is DAG}]=1.
+\end{equation}
+
+\noindent\emph{E.4 Cross-domain bias audit}:
+\begin{equation}
+\label{eq:e4}
+\mathsf{BiasIndex}=\sum_{g\in G}w_g,\big|\Pr(\hat{y}=1\mid g)-\Pr(\hat{y}=1)\big|\ \le\ \beta_{\max}.
+\end{equation}
+
+\noindent\emph{E.5 DRR process and no-loss trace}:
+\begin{equation}\label{eq:e5a}
+\mathtt{trace}_{\rightarrow}:\ \mathcal{A}\to \mathcal{A},\quad
+\mathtt{trace}_{\leftarrow}:\ \mathcal{A}\to \mathcal{A}.
+\end{equation}
+
+\begin{equation}\label{eq:e5b}
+\mathbf{1}\big[\mathtt{trace}_{\rightarrow}\ \text{and}\ \mathtt{trace}_{\leftarrow}\ \text{are total}\big]=1.
+\end{equation}
+
+\begin{equation}\label{eq:e5c}
+\begin{aligned}
+\mathtt{NoLoss\_Audit}=1\ \Leftrightarrow\ 
+&\forall a\ \exists a':\\
+&\mathtt{trace}_{\rightarrow}(a)=a'\ \wedge\ \mathtt{trace}_{\leftarrow}(a')=a.
+\end{aligned}
+\end{equation}
+
+\noindent\emph{E.6 Context alias disambiguation}:
+\begin{equation}
+\label{eq:e6}
+\forall c_1\neq c_2:\ \mathsf{Norm}(c_i)=k\Rightarrow c_1,c_2\ \text{reference the same }k.
+\end{equation}
+
+\noindent\emph{E.7 I/D/S separation}:
+\begin{equation}
+\label{eq:e7}
+\mathtt{WF_E.7}=\mathbf{1}[I\cap D=\varnothing\ \wedge\ I\cap S=\varnothing\ \wedge\ D\cap S=\varnothing]=1.
+\end{equation}
+
+\noindent\emph{E.8 Lex-bundle uniformity}:
+\begin{equation}
+\label{eq:e8}
+\mathtt{WF_E.8}=\mathbf{1}[\text{dictionary coverage complete and unambiguous}]=1.
+\end{equation}
+
+\noindent\emph{E.9 Naming discipline reference}:
+\begin{equation}
+\label{eq:e9}
+\mathtt{WF_E.9}=\mathtt{WF_Name}(n)\ \text{as in \eqref{eq:wf-name}}.
+\end{equation}
+
+\noindent\emph{E.10 Catalogue coverage trigger}:
+\begin{equation}
+\label{eq:e10}
+\mathtt{WF_E.10}=\mathbf{1}[\text{all }u\in\mathcal{U}\ \text{catalogued}]=1.
+\end{equation}
+
+\noindent\emph{E.11 Adequacy non-degradation}:
+\begin{equation}
+\label{eq:e11}
+\Delta\mathbb{E}[J]\ge 0\quad\text{under admissible refactorings}.
+\end{equation}
+
+\noindent\emph{E.12 Valid identifier rate}:
+\begin{equation}
+\label{eq:e12}
+\Pr\!\left[\text{artefact has valid }\text{\texttt{DRR\_id}}\right]\ \ge\ 0.995.
+\end{equation}
+
+\noindent\emph{E.13 Change-log schema compliance}:
+\begin{equation}
+\label{eq:e13}
+\forall \text{row}:\ \text{row}=\mathsf{CL_row}\ \text{as in \eqref{eq:chlog-row}}.
+\end{equation}
+
+\noindent\emph{E.14 Source/regression safety reference}:
+\begin{equation}
+\label{eq:e14}
+\mathtt{WF_E.14}=\mathtt{WF_SCR}\wedge \mathtt{WF_RSCR}\ \text{as in \eqref{eq:scr}}.
+\end{equation}
+
+\subsection{Guards and Points (enumeration)}
+\begin{align}
+\label{eq:gr-1}
+\mathrm{GR}_{1} &= \mathbf{1}\!\left[\text{all external interfaces versioned and frozen}\right],\\
+\label{eq:gr-2}
+\mathrm{GR}_{2} &= \mathbf{1}\!\left[\text{backward-compatible schema diffs only}\right],\\
+\label{eq:gr-3}
+\mathrm{GR}_{3} &= \mathbf{1}\!\left[\text{no orphan artefacts in }c(a)\right],\\
+\label{eq:gr-4}
+\mathrm{GR}_{4} &= \mathbf{1}\!\left[\text{unit tests cover all contracts}\right].
+\end{align}
+\begin{equation}\label{eq:p-1}
+\begin{aligned}
+P_{1}&=\mathbf{1}\!\left[\text{I/D/S separation holds at row level}\right],\ \ldots,\\
+&\quad P_{11}=\mathbf{1}\!\left[\text{NoLoss trace resolvable within one hop}\right].
+\end{aligned}
+\end{equation}
+
+\subsection{Bias cohorts and review cadence}
+\begin{equation}\label{eq:bias-cohorts}
+\begin{aligned}
+G&=\{g_1,\ldots,g_m\},\quad w_g\ge 0,\ \sum_{g\in G} w_g=1,\\
+&\text{BiasIndex as in \eqref{eq:e4}, reviewed at each release}.
+\end{aligned}
+\end{equation}
+
+\subsection{Fairness: Equal Opportunity}
+\begin{equation}
+\label{eq:eo-gap}
+\mathrm{EO\_gap}=\max_{g\in G}\big|\mathrm{TPR}_g-\mathrm{TPR}\big|\ \le\ \delta_{\mathrm{eo}}.
+\end{equation}
+
+\section{Well-Formedness: Part F (Expanded)}
+\subsection{Domain coverage and acyclicity}
+\begin{equation}
+\label{eq:f-coverage-dag}
+\mathbf{1}!\left[\bigcup_{i=1}^{N}\mathtt{scope}_{i}=\mathtt{TargetDomain}\right]
+\wedge
+\mathbf{1}!\left[\mathtt{DAG}(v_i)\right]=1.
+\end{equation}
+
+\subsection{Cluster cohesion and purity}
+\begin{equation}
+\label{eq:f-cluster-thresh}
+\forall s\ \forall t,t’\in \mathrm{cluster}(s):\ \mathrm{sim}(t,t’)\ge \theta,
+\end{equation}
+\begin{equation}
+\label{eq:f-knowledge-purity}
+\mathbf{1}!\left[\mathcal{K}_{c}\ \text{does not intersect other clusters}\right]=1.
+\end{equation}
+
+\subsection{Link budget, growth control, new-type quota}
+\begin{equation}\label{eq:link-budget}
+\begin{aligned}
+\sum\nolimits_{\text{links}} CL &\le \zeta_{\max},\\
+\mathsf{ExplodeIndex} &=
+\tfrac{\#\,\mathrm{NewRows}+\#\,\mathrm{NewTemplates}}{\#\,\mathrm{ReusedRows}+1}
+\ \le\ \xi_{\max}.
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\label{eq:new-types}
+\#\,\text{NewTypes per release}\ \le\ K.
+\end{equation}
+
+\subsection{Link-cost units and budget aggregation}
+\begin{equation}\label{eq:cl-units}
+\begin{aligned}
+CL:\ &\text{links}\to \mathbb{R}_{\ge 0},\\
+&CL=\tfrac{\text{reading time}}{\text{page unit}},\\
+&\sum CL\ \text{is additive under }\Gamma_{\mathrm{work}}.
+\end{aligned}
+\end{equation}
+
+\subsection{Bridges and cross-room discipline}
+\begin{equation}\label{eq:f-bridges}
+\begin{aligned}
+\mathbf{1}[\text{bridges well formed}]&=1,\\
+\mathbf{1}[\text{no implicit cross-room jumps}]&=1.
+\end{aligned}
+\end{equation}
+
+\subsection{Map cost regularity}
+\begin{equation}\label{eq:cl-sym}
+\begin{aligned}
+&\text{Let } p=(c,s_c),\ q=(c',s_{c'});\\
+&CL(p\leftrightarrow q)=CL(q\leftrightarrow p).
+\end{aligned}
+\end{equation}
+
+\begin{equation}\label{eq:cl-tri}
+\begin{aligned}
+&\text{Let } p=(c,s_c),\ q=(c',s_{c'}),\ r=(c'',s_{c''});\\
+&CL(p\leftrightarrow r)\le CL(p\leftrightarrow q)+CL(q\leftrightarrow r).
+\end{aligned}
+\end{equation}
+
+\subsection{Bridge schema}
+\begin{equation}
+\label{eq:bridge-schema}
+\begin{aligned}
+\mathrm{Bridge}&=(c_{\mathrm{src}},s_{\mathrm{src}},c_{\mathrm{dst}},s_{\mathrm{dst}}),\\
+&\mathbf{1}[\text{bidirectional}]\\
+&\wedge\ \mathbf{1}[\text{cluster-consistent}]\\
+&\wedge\ \mathbf{1}[\text{no hidden jumps}].
+\end{aligned}
+\end{equation}
+
+\section{Glossary and Catalogue}
+\subsection{Completeness and cardinality}
+\begin{equation}
+\label{eq:glossary}
+\mathtt{Glossary}=\left\{\mathsf{Entry}(u)\,\middle|\, u\in\mathcal{U}\right\},\qquad
+\left|\mathtt{Glossary}\right|=\left|\mathcal{U}\right|.
+\end{equation}
+
+\subsection{Graph maps: bidirectionality and navigation}
+\begin{equation}
+\label{eq:wf-g}
+\begin{aligned}
+\mathtt{WF_G}
+&=\mathbf{1}\big[\eqref{eq:glossary}\ \text{holds}\big]\\
+&\wedge\ \mathbf{1}\big[\text{maps are bidirectional and}\\
+&\qquad\ \text{transitively navigable}\big].
+\end{aligned}
+\end{equation}
+
+\subsection{Optimization of readability vs. ambiguity}
+\begin{equation}
+\label{eq:gloss-obj}
+\begin{aligned}
+\max_{\text{Glossary},\,\text{Catalogue},\,R}\quad
+& \mathbb{E}\!\big[\mathrm{Readability}(\text{Glossary})\big] \\
+& {}-\lambda\,\mathrm{Ambiguity}(\text{Glossary},R) \\
+\text{s.t.}\quad
+& \mathtt{WF_G}=1, \\
+& |\text{Glossary}|=|\mathcal{U}|.
+\end{aligned}
+\end{equation}
+
+\subsection{KPIs for readability and ambiguity}
+\begin{equation}
+\label{eq:read-amb-kpi}
+\begin{aligned}
+\mathrm{Readability} &= \frac{1}{|\mathcal{U}|}\sum_{u\in\mathcal{U}} r(u),\\
+\mathrm{Ambiguity}   &= \frac{1}{|\mathcal{U}|}\sum_{u\in\mathcal{U}} a(u,R),\\
+&\text{where } r,a\in[0,1].
+\end{aligned}
+\end{equation}
+
+\subsection{Adaptation and Resilience thresholds}
+\begin{equation}
+\label{eq:adapt-resil-thr}
+\mathrm{AdaptRate}\ \ge\ \rho_{\mathrm{adapt}},\qquad
+\mathrm{Resilience}\ \ge\ \rho_{\mathrm{res}}.
+\end{equation}
+
+\subsection{Row stub completeness}
+\begin{equation}
+\label{eq:wf-stub}
+\mathtt{WF_Stub}(p)=\mathbf{1}\big[\text{all 10 fields present}\big].
+\end{equation}
+
+\section{Naming Discipline and Authoring}
+\subsection{Name quality}
+\begin{equation}
+\label{eq:wf-name}
+\mathtt{WF_Name}(n)=\mathbf{1}\big[\text{unique}\big]\wedge \mathbf{1}\big[\text{readable}\big]\wedge \mathbf{1}\big[\text{suffix in registry}\big].
+\end{equation}
+
+\subsection{Authoring structure}
+\begin{equation}
+\label{eq:wf-authoring}
+\begin{split}
+\mathtt{WF_Authoring}(a)=\mathbf{1}\!\Bigl[
+\mathtt{Sections}=\{\mathtt{Intent},\ \mathtt{Contract},\\[-1pt]
+\mathtt{Invariants},\ \mathtt{Examples}\}
+\Bigr].
+\end{split}
+\end{equation}
+
+\section{Source and Regression Safety}
+\begin{equation}
+\label{eq:scr}
+\begin{aligned}
+\mathtt{WF\_SCR}  &= \mathbf{1}\big[\mathtt{No\_Dangling}\big],\\
+\mathtt{WF\_RSCR} &= \mathbf{1}\big[\mathtt{No\_Regression\_Breaks}\big].
+\end{aligned}
+\end{equation}
+
+\section{Lexical Hygiene and Dependencies}
+\subsection{Core leakage prevention}
+\begin{equation}
+\label{eq:noleak-core}
+\mathtt{NoLeak_Core}(a)=\mathbf{1}!\left[\forall t\in\mathcal{L}{\mathrm{ban}}:\ \mathrm{freq}{a}(t)=0\right].
+\end{equation}
+
+\subsection{Dependency constraints}
+\begin{equation}
+\label{eq:wf-deps}
+\mathtt{WF_Deps}=\mathbf{1}\big[\nexists\ (\mathtt{Core}\to\cdot)\ \vee\ (\mathtt{Tooling}\to \mathtt{Pedagogy})\big]=1.
+\end{equation}
+
+\section{Composition Operators and Levels}
+\subsection{Method composition}
+\begin{equation}
+\label{eq:gamma-method}
+\Gamma_{\mathrm{method}}:\ \ M_2\circ M_1,\ \ M_1\parallel M_2,\quad \mathbf{1}\big[\text{boundaries aligned}\big]=1.
+\end{equation}
+
+\subsection{Strategic evolution layer}
+\begin{equation}
+\label{eq:gamma-evolve}
+\Gamma_{\mathrm{evolve}}:\ \kappa_{t+1}=\mathcal{T}(\kappa_t,\delta_t),\quad
+\kappa_t\in\mathcal{K},\ \delta_t\in\mathcal{D}_{\mathrm{adm}}.
+\end{equation}
+\begin{IEEEeqnarray}{l}
+\label{eq:evo-stable}
+\mathtt{EvoStable}=1\iff \\[1pt]
+\qquad \mathtt{WF\_PartE}=1 \nonumber\\[-2pt]
+\qquad \wedge\ \mathtt{WF\_PartF}=1 \nonumber\\[-2pt]
+\qquad \wedge\ \mathtt{WF\_G}=1 \nonumber\\[-2pt]
+\qquad \wedge\ {\textstyle\sum} CL \le \zeta_{\max}.
+\end{IEEEeqnarray}
+
+\subsection{Strategic evolution objective}
+\begin{IEEEeqnarray}{l}
+\label{eq:evolve-obj}
+\min_{\{\delta_t\}_{t=0}^{T-1}}\
+\sum_{t=0}^{T-1}\Big(-\mathbb{E}[J(\kappa_{t+1})]
++\lambda_{\mathrm{chg}}\ \mathrm{ChangeCost}(\delta_t)\Big)\\
+\text{s.t.}\ \ \kappa_{t+1}=\mathcal{T}(\kappa_t,\delta_t),\
+\delta_t\in\mathcal{D}_{\mathrm{adm}},\
+\text{\eqref{eq:adapt-resil-thr}, EVO\_ROB=1}.
+\end{IEEEeqnarray}
+
+\subsection{Work aggregation}
+\begin{equation}
+\label{eq:gamma-work}
+\Gamma_{\mathrm{work}}:\ \ \sum \mathtt{consume},\quad \mathbf{1}\big[\text{budgets additive}\big]=1.
+\end{equation}
+
+\subsection{Strategic evolution}
+\label{sec:gamma-evolve}
+\begin{equation}
+\Gamma_{\mathrm{evolve}}:\ \kappa_{t+1}=\mathcal{T}(\kappa_t,\delta_t),\quad
+\kappa_t\in\mathcal{K},\ \delta_t\in\mathcal{D}_{\mathrm{adm}}.
+\end{equation}
+
+\subsection{Evolutionary composition (strategic layer)}
+\begin{equation}
+\label{eq:gamma-evolve}
+\Gamma_{\mathrm{evolve}}:\ \ \kappa_{t+1}=\mathcal{T}(\kappa_t,\delta_t),\quad
+\kappa_t\in\mathcal{K},\ \delta_t\in\mathcal{D}_{\mathrm{adm}}.
+\end{equation}
+\noindent
+An evolution step $\mathcal{T}$ is admissible only if well-formedness and budgets are preserved:
+$\mathtt{WF\_PartE}=1$, $\mathtt{WF\_PartF}=1$, $\mathtt{WF\_G}=1$, and $\sum CL\le \zeta_{\max}$.
+
+\subsection{Policy semantics and composition contract}
+\begin{subequations}\label{eq:policy-semantics}
+\begin{align}
+\pi&:\ \mathcal{X}\times\mathcal{C}\ \to\ \Delta(\mathcal{Y}) \label{eq:policy-type}\\
+\mathbb{E}\!\left[J(\pi_2\!\circ\!\pi_1)\right]
+&\ge \alpha\,\mathbb{E}\!\left[J(\pi_1)\right]
+  + (1-\alpha)\,\mathbb{E}\!\left[J(\pi_2)\right],\quad \alpha\in[0,1]. \label{eq:policy-mix}
+\end{align}
+\end{subequations}
+Consistent with $\Gamma_{\mathrm{method}}$.
+
+\subsection{Assurance levels}
+\begin{equation}
+\label{eq:assurance-levels}
+L_0<L_1<L_2,\qquad \mathbf{1}\big[\text{thresholds satisfied}\big]=1.
+\end{equation}
+
+\subsection{Numerical thresholds for assurance}
+\begin{equation}
+\label{eq:assurance-thr}
+\begin{aligned}
+\exists\,\{\tau^{(L_i)},\hat{\tau}^{(L_i)}\}_{i\in\{0,1,2\}}:\quad
+& \mathrm{Acc}\ge\tau^{(L_i)}\ \wedge\ \mathrm{Spec}\ge\hat{\tau}^{(L_i)}\\
+& \Rightarrow\ L\ge L_i\qquad(\forall\, i\in\{0,1,2\}).
+\end{aligned}
+\end{equation}
+
+\section{Aliases and Normalisation}
+\subsection{Invariants}
+\begin{align}
+\underline{\mathtt{IDEM}}:\ &\ \mathsf{Norm}(k,c)=(k,v_k)\Rightarrow \label{eq:idem}\\
+&\ \mathsf{Norm}(k,c)=(k,v_k) \notag\\[2pt]
+\underline{\mathtt{UNIQ}}:\ &\ (\ell_1\neq \ell_2)\wedge \mathsf{Norm}(\ell_i,c)=(k,v)\Rightarrow \label{eq:uniq}\\
+&\ \ell_1,\ell_2\ \text{reference the same }k \notag\\[2pt]
+\underline{\mathtt{TRACE}}:\ &\ \forall \ell:\ \exists\ \texttt{DRR\_id}(\ell\!\to\! k)\ \wedge \label{eq:trace}\\
+&\ \texttt{ChangeLog}(\ell,k,v) \notag
+\end{align}
+
+\section{DRR Change Log: Schema and Example}
+\subsection{Row schema}
+\begin{equation}
+\label{eq:chlog-row}
+\mathsf{CL\_row}^{+}=(\mathsf{CL\_row},\ \mathcal{U}_{\mathrm{fuzzy}},\ \mathtt{RB\_Test},\ \mathtt{EVO\_ROB},\ \mathsf{BiasIndex}).
+\end{equation}
+
+\subsection{Field formats}
+\begin{equation}
+\label{eq:chlog-formats}
+\mathtt{When}\in\text{ISO-8601},\quad
+v_{\mathrm{old/new}}\ \text{in SemVer},\quad
+\Delta\in{\mathtt{add},\mathtt{mod},\mathtt{del}}.
+\end{equation}
+
+\subsection{Rollback predicate}
+\begin{equation}
+\label{eq:rollback}
+\begin{aligned}
+\mathtt{Rollback}=1 \iff\ & \exists\,\text{row}:\ \Delta\in\{\mathtt{mod},\mathtt{del}\}\\
+&{}\wedge\ \mathrm{replay}\!\left(\mathtt{trace}_{\leftarrow}\right)\ \text{succeeds}.
+\end{aligned}
+\end{equation}
+
+\subsection{Rollback test}
+\begin{equation}
+\label{eq:rb-test}
+\mathtt{RB\_Test}
+=\iverson{\,\neg\exists\,\text{row: }\Delta\!\in\!\{\mathtt{mod},\mathtt{del}\}\,}\ \lor\ \mathtt{Rollback}=1.
+\end{equation}
+
+\subsection{Example row}
+\begin{table}[!htb]
+\centering
+\setlength{\tabcolsep}{2pt}        % было 4pt
+\renewcommand{\arraystretch}{1.02} % чуть плотнее по вертикали
+\begin{tabular}{p{.14\linewidth}p{.10\linewidth}p{.10\linewidth}p{.10\linewidth}p{.08\linewidth}p{.16\linewidth}p{.16\linewidth}}
+\underline{\texttt{DRR\_id}} & \underline{Obj} & \underline{$v_{\mathrm{old}}$} & \underline{$v_{\mathrm{new}}$} & \underline{$\Delta$} & \underline{When} & \underline{Who} \\
+\hline
+A1234 & $a$ & 1.2.0 & 1.3.0 & add & 2025-01-01 & team\_B \\
+\end{tabular}
+\end{table}
+
+\subsection{Row coverage constraint}
+\begin{equation}
+\label{eq:wf-g2}
+\begin{aligned}
+\texttt{WF\_G.2}=\;&
+\mathbf{1}\Big[\{\,p\in\mathrm{Catalogue}\mid p.\mathrm{kind}=\mathrm{row}\,\}\\[-2pt]
+&\subseteq\mathrm{table\ rows}\Big]\ \wedge\ \prod_{p}\texttt{WF\_Stub}(p)=1.
+\end{aligned}
+\end{equation}
+
+\section{Acceptance Conditions}
+\subsection{E/F/G acceptance}
+\begin{equation}
+\label{eq:accept-e}
+\begin{aligned}
+\mathtt{ACCEPT\_E}=\;&\mathbf{1}\big[\mathtt{WF\_PartE}=1\big]\ \wedge\\[-2pt]
+&\mathbf{1}\big[\mathbb{E}[J]\ \text{non-decreasing}\big].
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\label{eq:accept-f}
+\begin{aligned}
+\mathtt{ACCEPT\_F}=\;&\mathbf{1}\big[\mathtt{WF\_PartF}=1\big]\ \wedge\\[-2pt]
+&\mathbf{1}\big[{\textstyle\sum} CL\le \zeta_{\max}\big]\ \wedge\\[-2pt]
+&\mathbf{1}\big[\mathsf{ExplodeIndex}\le \xi_{\max}\big].
+\end{aligned}
+\end{equation}
+
+\begin{equation}
+\label{eq:accept-g}
+\begin{aligned}
+\mathtt{ACCEPT\_G}=\;&\mathbf{1}\big[\mathtt{WF\_G}=1\big]\ \wedge\\[-2pt]
+&\mathbf{1}\big[\text{all }u\in\mathcal{U}\ \text{catalogued}\big]\ \wedge\\[-2pt]
+&\mathbf{1}\big[\text{maps bidirectional}\big].
+\end{aligned}
+\end{equation}
+
+\subsection{Evolutionary robustness}
+\begin{equation}
+\label{eq:evo-robust}
+\mathtt{EVO\_ROB}=
+\iverson{%
+\begin{aligned}
+&\forall\,\delta\in\mathcal{D}_{\mathrm{adm}}:\ 
+  \mathbb{E}[J(\kappa_{t+1})]\ \ge\ \mathbb{E}[J(\kappa_t)]-\epsilon_{\mathrm{evo}}\\
+&{}\wedge\ \mathtt{WF\_PartE}=\mathtt{WF\_PartF}=\mathtt{WF\_G}=1
+\end{aligned}}
+\end{equation}
+
+\subsection{Unified acceptance gate (with rollback \& evo-robustness)}
+\begin{IEEEeqnarray}{l}
+\label{eq:accept-os}
+\texttt{ACCEPT\_OS}=1\iff \texttt{ACCEPT\_E}=1\\
+\qquad \wedge \mathtt{ACCEPT\_F}=1\\
+\qquad \wedge \mathtt{ACCEPT\_G}=1\\
+\qquad \wedge \mathtt{RB\_Test}=1\\
+\qquad \wedge \mathtt{EVO\_ROB}=1\\
+\qquad \wedge \mathbb{E}[J]\ge U_{\min}.
+\end{IEEEeqnarray}
+
+\subsection{Glossary objective bound}
+\begin{equation}
+\label{eq:gobj-bound}
+\texttt{ACCEPT\_G}=
+\begin{cases}
+1, & \mathrm{Obj}^\star \ge \rho > 0,\\
+0, & \mathrm{Obj}^\star < \rho.
+\end{cases}
+\end{equation}
+
+\subsection{Fuzzy quality aggregation}
+Let $m=(\mathrm{Acc},\mathrm{Prec},\mathrm{Rec},\mathrm{F1},\mathrm{Spec},1-\mathrm{FPR},1-\mathrm{FNR})$.
+Define membership functions $\mu_i:[0,1]\to[0,1]$ and normalized weights $\nu_i\ge 0$ with $\sum_i \nu_i=1$. The aggregate score is
+\begin{equation}
+\label{eq:fuzzy-agg}
+\mathcal{U}{\mathrm{fuzzy}}=\sum{i}\nu_i,\mu_i!\left(m_i\right),\qquad
+\mathcal{U}_{\mathrm{fuzzy}}\in[0,1].
+\end{equation}
+
+\subsection{Metric thresholds}
+\begin{IEEEeqnarray}{rCl}
+\label{eq:thr-metrics}
+\mathrm{Acc} &\ge& 0.985,\\
+\mathrm{Prec} &\ge& 0.980,\\
+\mathrm{Rec} &\ge& 0.975,\\
+\mathrm{F1} &\ge& 0.977,\\
+\mathrm{Spec} &\ge& 0.990,\\
+\mathrm{FPR} &\le& 0.010,\\
+\mathrm{FNR} &\le& 0.025.
+\end{IEEEeqnarray}
+
+\subsection{Operational SLOs}
+\begin{equation}
+\label{eq:slos}
+\mathrm{Latency}\le \ell_{\max},\quad
+\mathrm{Throughput}\ge \tau_{\min},\quad
+\mathrm{ErrRate}\le \epsilon_{\max}.
+\end{equation}
+\begin{equation}
+\label{eq:slo-rb}
+\mathrm{RollbackSuccRate}\ \ge r_{\min},\qquad
+\mathrm{MTTR}\ \le t_{\max}.
+\end{equation}
+\begin{equation}
+\label{eq:slos-tail}
+\mathrm{Latency}_{p99}\ \le\ \ell^{99}_{\max}.
+\end{equation}
+
+\subsection{Emergent indicators}
+\begin{equation}
+\label{eq:emergent}
+\mathrm{AdaptRate}=\frac{\Delta \mathrm{Acc}}{\Delta t},\qquad
+\mathrm{Resilience}=\Pr\!\big[\text{recover within }k\ \text{steps}\big].
+\end{equation}
+
+\subsection{Workflow gate for publish}
+\begin{equation}
+\label{eq:gate-publish}
+\begin{aligned}
+\mathrm{Gate}_{\mathrm{publish}}=1\iff\ & \mathtt{ACCEPT\_OS}=1 \ \wedge\ \mathrm{Acc}\ge 0.985\\
+& {}\wedge\ \mathcal{U}_{\mathrm{fuzzy}}\ge \eta.
+\end{aligned}
+\end{equation}
+for a release policy constant $\eta\in(0,1)$.
+
+\section{Quality Metrics}
+Let $\mathrm{TP},\mathrm{FP},\mathrm{FN},\mathrm{TN}\in\mathbb{N}$, $P=\mathrm{TP}+\mathrm{FN}$,
+$N=\mathrm{TN}+\mathrm{FP}$, $T=P+N$. Then
+\begin{IEEEeqnarray}{rCl}
+\label{eq:metrics}
+\mathrm{Acc} & = & \frac{\mathrm{TP}+\mathrm{TN}}{T},\\
+\mathrm{Prec} & = & \frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}},\\
+\mathrm{Rec} & = & \frac{\mathrm{TP}}{P},\\
+\mathrm{F1} & = & \frac{2\,\mathrm{TP}}{2\,\mathrm{TP}+\mathrm{FP}+\mathrm{FN}},\\
+\mathrm{Spec} & = & \frac{\mathrm{TN}}{N},\\
+\mathrm{FPR} & = & \frac{\mathrm{FP}}{N},\\
+\mathrm{FNR} & = & \frac{\mathrm{FN}}{P}.
+\end{IEEEeqnarray}
+
+\subsection{Emergent indicators}
+\begin{equation}
+\label{eq:adapt-resil}
+\mathrm{AdaptRate}=\frac{\Delta\mathrm{Acc}}{\Delta t},\qquad
+\mathrm{Resilience}=\Pr\!\big[T_{\mathrm{rec}}\le k\big].
+\end{equation}
+
+\subsection{KPI mapping}
+\label{sec:fpf-mapping}
+\begin{table}[!hbt]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\renewcommand{\arraystretch}{1.03}
+\begin{tabular}{p{.28\linewidth}p{.34\linewidth}p{.32\linewidth}}
+\underline{Principial component} & \underline{Metric} & \underline{$\mu_i$ in $\mathcal{U}_{\mathrm{fuzzy}}$} \\
+\hline
+Predictivity & $\mathrm{Acc},\mathrm{Prec},\mathrm{Rec},\mathrm{F1},\mathrm{Spec}$ & $\mu_{\mathrm{pred}}(m)$ \\
+Calibration & ECE (aux.), threshold tuning & $\mu_{\mathrm{cal}}(m)$ \\
+Fairness & $\mathsf{BiasIndex}$ & $\mu_{\mathrm{fair}}(\cdot)$ \\
+Robustness & $\mathtt{EVO\_ROB}$ & $\mu_{\mathrm{rob}}(\cdot)$ \\
+Recoverability & $\mathtt{RB\_Test}$, MTTR & $\mu_{\mathrm{rec}}(\cdot)$ \\
+Readability & $\mathrm{Readability}$ & $\mu_{\mathrm{read}}(\cdot)$ \\
+Ambiguity & $\mathrm{Ambiguity}$ & $\mu_{\mathrm{amb}}(\cdot)$ \\
+Cost/Budget & $\sum CL,\ \mathsf{ExplodeIndex}$ & $\mu_{\mathrm{cost}}(\cdot)$ \\
+\hline
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+\section{Conformance Checklist}
+\begin{table}[!hbt]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.03}
+\begin{tabular}{p{.18\linewidth}p{.32\linewidth}p{.32\linewidth}p{.12\linewidth}}
+\underline{ID} & \underline{Rule (formula)} & \underline{Verification artefact} & \underline{Status} \\
+\hline
+E.2 & $\mathsf{Sem}(\mathrm{f}_1)=\mathsf{Sem}(\mathrm{f}_2)$ & paired renders + semantic diff & pass/fail \\
+E.3 & DAG on families & dependency graph audit & pass/fail \\
+E.4 & $\mathsf{BiasIndex}\le \beta_{\max}$ & cohort metrics report & pass/fail \\
+E.5 & NoLoss trace (\ref{eq:e5a}--\ref{eq:e5c}) & round-trip traces & pass/fail \\
+F.* & (\ref{eq:f-coverage-dag}--\ref{eq:f-bridges}) & scope, clusters, links & pass/fail \\
+CL  & (\ref{eq:cl-sym}--\ref{eq:cl-tri}) & map cost symmetry/triangle & pass/fail \\
+G.Obj & (\ref{eq:gloss-obj}, \ref{eq:read-amb-kpi}, \ref{eq:gobj-bound}) & readability/ambiguity report & value \\
+Name & (\ref{eq:wf-name}) & registry check & pass/fail \\
+SCR & (\ref{eq:scr}) & CI logs & pass/fail \\
+SLOs & (\ref{eq:slos}) & perf. monitoring report & pass/fail \\
+EvoStable & (\ref{eq:gamma-evolve}, \ref{eq:evo-stable}) & evolution audit & pass/fail \\
+Rollback & (\ref{eq:rollback}) & rollback test log & pass/fail \\
+Emergent & (\ref{eq:emergent}) & KPI report & value \\
+Safe-mode & (\ref{eq:safe-mode}) & runtime traces & pass/fail \\
+EVO\_ROB & (\ref{eq:evolve-obj}, \ref{eq:accept-os}) & adversarial evolution tests & pass/fail \\
+Adapt/Res & (\ref{eq:adapt-resil-thr}) & learning curve + recovery stats & pass/fail \\
+Latency p99 & (\ref{eq:slos-tail}) & perf. monitoring report & pass/fail \\
+EO\_gap & (\ref{eq:eo-gap}) & cohort TPR analysis & pass/fail \\
+Fairness & $\mathsf{BiasIndex}\le \beta_{\max}$ (value shown) & cohort metrics report & pass/fail \\
+\hline
+\end{tabular}
+\end{table}
+
+\FloatBarrier
+
+\section{Symbols to Semantic Names}
+\begin{table}[!hbt]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.03}
+\begin{tabular}{p{.36\linewidth}p{.6\linewidth}}
+\underline{Legacy symbol} & \underline{Semantic name} \\
+\hline
+$\mathcal{C}$ & set of rooms (contexts) \\
+$\mathcal{U}$ & universe of canonical entries \\
+$a$ & artefact (generic) \\
+$x$ & input instance \\
+$c$;\ $c(\cdot)$ & room; artefact-to-rooms map \\
+$\Pi,\ \pi$ & set of policies; policy \\
+$\pi(x,c)$ & policy decision on $(x,c)$ \\
+$J,\ \mathbb{E}[J]$ & utility; expected utility \\
+$\lambda_{\mathrm{read}},\ \mathsf{Read}(a)$ & read penalty; reading cost \\
+$\mathsf{Adeq}$ & adequacy indicator \\
+$\mathrm{sim}(t,t^{\prime}),\ \theta$ & similarity; similarity threshold \\
+$CL(\cdot),\ \zeta_{\max}$ & link cost; max total link cost \\
+$\mathsf{ExplodeIndex},\ \xi_{\max}$ & explode index; explode limit \\
+$K$ & new-type quota per release \\
+$\Gamma_{\mathrm{method}},\ \Gamma_{\mathrm{work}}$ & composition (methods, work) \\
+$\beta_{\max}$ & bias index limit \\
+$\mathrm{TP},\mathrm{FP},\mathrm{FN},\mathrm{TN}$ & confusion counts \\
+$P,N,T$ & actual positives, negatives, total \\
+$U_{\min},\ \eta$ & minimum expected utility; publish gate threshold \\
+$\mu_i(\cdot),\ \nu_i$ & membership functions; normalized weights \\
+$\tau^{(L_i)},\ \hat{\tau}^{(L_i)}$ & assurance thresholds (acc./spec.) \\
+$s_t\in\{\mathtt{RUN},\mathtt{SAFE},\mathtt{RECOVER}\}$ & runtime mode state \\
+$\Gamma_{\mathrm{evolve}}$ & strategic evolution operator \\
+$\mathtt{Rollback},\ \mathtt{RB\_Test}$ & rollback predicate and acceptance test \\
+$\mathrm{AdaptRate}$ & adaptation speed (dAcc/dt) \\
+$\mathrm{Resilience}$ & recovery probability within $k$ steps \\
+$\mathtt{SAFE},\ \mathtt{RUN},\ \mathtt{RECOVER}$ & runtime states \\
+$\mathtt{Rollback}$ & rollback test predicate \\
+$\Gamma_{\mathrm{evolve}}$ & strategic evolution operator \\
+$\kappa_t,\ \delta_t$ & architecture config;\ admissible change \\
+$\mathcal{T}$ & architecture transition function \\
+$\mathtt{EvoStable}$ & evolutionary stability predicate \\
+$\mathrm{AdaptRate}$ & adaptation speed KPI \\
+$\mathrm{Resilience}$ & recovery probability KPI \\
+$t_{\mathrm{SAFE}},\ h$ & SAFE entry time;\ hold time for recovery \\
+$\mathtt{SAFE},\ \mathtt{RUN},\ \mathtt{RECOVER}$ & runtime states (safe-mode automaton) \\
+$\mathtt{RB\_Test}$,\ $\mathtt{EVO\_ROB}$ & rollback test; evolution robustness gate \\
+$\Gamma_{\mathrm{evolve}}$ & strategic evolution operator \\
+$\mathrm{AdaptRate},\ \mathrm{Resilience}$ & adaptation speed; recovery probability \\
+\hline
+\end{tabular}
+\end{table}
+
+\section{Conclusion}
+The formulation delivers a minimal, self--contained operational semantics with three functional gates and measurable acceptance criteria. Explicit naming replaces opaque labels, and structure budgets bound growth. The result is directly auditable and ready for implementation.
+
+\section*{Acknowledgment}
+The author thanks the reviewers for helpful comments.
+
+\begin{thebibliography}{99}
+
+\bibitem{LevenchukFPF}
+A.~Levenchuk, ``First Principles Framework --- Core Conceptual Specification (holonic),'' online manuscript. [Online]. Available: \url{https://disk.yandex.ru/d/N2xaJZWo-hhFYw}. Accessed: Sep.~14,~2025.
+
+\bibitem{Zadeh1965}
+L.~A. Zadeh, ``Fuzzy sets,'' \emph{Information and Control}, vol.~8, no.~3, pp. 338--353, 1965. DOI: \url{10.1016/S0019-9958(65)90241-X}.
+
+\bibitem{Tversky1977}
+A.~Tversky, ``Features of similarity,'' \emph{Psychological Review}, vol.~84, no.~4, pp. 327--352, 1977. DOI: \url{10.1037/0033-295X.84.4.327}.
+
+\bibitem{Kahn1962}
+A.~B. Kahn, ``Topological sorting of large networks,'' \emph{Communications of the ACM}, vol.~5, no.~11, pp. 558--562, 1962. DOI: \url{10.1145/368996.369025}.
+
+\bibitem{Dijkstra1959}
+E.~W. Dijkstra, ``A note on two problems in connexion with graphs,'' \emph{Numerische Mathematik}, vol.~1, pp. 269--271, 1959. DOI: \url{10.1007/BF01386390}.
+
+\bibitem{Wang2004}
+Z.~Wang, A.~C. Bovik, H.~R. Sheikh, and E.~P. Simoncelli, ``Image quality assessment: From error visibility to structural similarity,'' \emph{IEEE Trans. Image Processing}, vol.~13, no.~4, pp. 600--612, 2004. DOI: \url{10.1109/TIP.2004.819861}.
+
+\bibitem{Fawcett2006}
+T.~Fawcett, ``An introduction to ROC analysis,'' \emph{Pattern Recognition Letters}, vol.~27, no.~8, pp. 861--874, 2006. DOI: \url{10.1016/j.patrec.2005.10.010}.
+\end{thebibliography}
+
+\end{document}
