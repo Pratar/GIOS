@@ -4,7 +4,7 @@
 
 GIOS (Goal-Integrated Operating System) is a formalized framework designed to structure reasoning and execution processes in intelligent systems, such as AI agents or Large Language Models (LLMs). It treats reasoning as an "operating system" with built-in mechanisms for goal alignment, context management, utility optimization, safety guards, and evolutionary stability. The system emphasizes well-formedness constraints to ensure reliability, fairness, and efficiency, drawing from concepts in software engineering, AI ethics, graph theory, and DevOps.
 
-Developed by Mikhail Nazarenko, GIOS provides a mathematical specification for managing artifacts (e.g., policies, glossaries, catalogs) within "rooms" (contexts), while enforcing rules for bias control, dependency management, and resource budgets (e.g., reading costs, link budgets). It aims to create self-contained, auditable systems that can evolve without degrading performance.
+Developed GIOS provides a mathematical specification for managing artifacts (e.g., policies, glossaries, catalogs) within "rooms" (contexts), while enforcing rules for bias control, dependency management, and resource budgets (e.g., reading costs, link budgets). It aims to create self-contained, auditable systems that can evolve without degrading performance.
 
 ### Key Features
 - **Goal Integration**: Maximizes expected utility (E[J]) while minimizing costs like reading penalties.
