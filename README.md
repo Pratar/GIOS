@@ -120,5 +120,4 @@ Test with tools like LangChain for chaining prompts or evaluate outputs against 
 - **Quality**: The specification is rigorous, with closed-form math, explicit thresholds (e.g., Acc ≥ 0.985), and conformance checklists, making it auditable and implementable. When applied to LLMs, it "sharply raises" response quality by enforcing structure, reducing ambiguity (via glossary optimization), and ensuring robustness (EVO_ROB). Potential weaknesses: High formalism may require expertise; assumes idealized metrics in practice. Overall, it's a high-quality blueprint for reliable AI reasoning.
 
 ## References
-- Nazarenko, M. "GIOS: Goal-Integrated Operating System for Reasoning and Execution." (2025).
 - See the paper's references for foundational citations.
