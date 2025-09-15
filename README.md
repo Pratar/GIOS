@@ -125,6 +125,10 @@ In essence, GIOS enforces a disciplined, traceable structure on reasoning proces
 
 ## Usage
 
+The most straightforward way to use GIOS is to upload a file to the chat, state your query, and then add the following instruction:
+
+"Please apply the GIOS framework to provide a comprehensive analysis of this document from all relevant aspects."
+
 GIOS is primarily a specification framework, not a plug-and-play software library. It can be implemented as a custom system or used as a prompting template for LLMs to enhance response quality. Below are steps for practical application:
 
 ### 1. Implementing GIOS as a System
