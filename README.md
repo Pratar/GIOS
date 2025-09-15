@@ -13,6 +13,79 @@ Developed GIOS provides a mathematical specification for managing artifacts (e.g
 - **Fairness and Bias Control**: Audits for cross-domain bias and equal opportunity gaps.
 - **Evolutionary Robustness**: Allows strategic evolution of the system architecture while preserving well-formedness.
 
+Of course. Here is the GIOS workflow diagram, entirely in English and using only ASCII characters.
+
+This diagram outlines the lifecycle of an artifact within the GIOS framework, from its initial creation or modification through a series of rigorous, sequential validation gates, culminating in either its publication or rejection.
+
+```mermaid
+graph TD
+    subgraph "Start"
+        A[Artifact Creation / Modification]
+    end
+
+    A --> GateE{"Gate 1: ACCEPT_E"};
+
+    subgraph "Step 1: Structural and Logical Integrity"
+        GateE -- Yes --> GateF{"Gate 2: ACCEPT_F"};
+        GateE -- No --> Reject["Artifact Rejected"];
+        
+        DetailsE[
+            <b>ACCEPT_E Checks:</b><br/>
+            - WF_PartE rules are met (lexicon, dependencies, bias audit, etc.).<br/>
+            - Expected utility E[J] is non-decreasing.
+        ]
+    end
+
+    subgraph "Step 2: Complexity and Budget Management"
+        GateF -- Yes --> GateG{"Gate 3: ACCEPT_G"};
+        GateF -- No --> Reject;
+
+        DetailsF[
+            <b>ACCEPT_F Checks:</b><br/>
+            - WF_PartF rules are met (domain coverage, cluster purity).<br/>
+            - Link budget is not exceeded (Sum CL <= max_zeta).<br/>
+            - Complexity growth is in check (ExplodeIndex < max).
+        ]
+    end
+
+    subgraph "Step 3: Knowledge Base Integrity"
+        GateG -- Yes --> GateOS{"Gate 4: Unified Acceptance (ACCEPT_OS)"};
+        GateG -- No --> Reject;
+
+        DetailsG[
+            <b>ACCEPT_G Checks:</b><br/>
+            - WF_G rules are met (glossary completeness).<br/>
+            - All entities are catalogued and maps are bidirectional.
+        ]
+    end
+
+    subgraph "Step 4: Final Systemic Approval"
+        GateOS -- Yes --> GatePub{"Gate 5: Publish Gate"};
+        GateOS -- No --> Reject;
+
+        DetailsOS[
+            <b>ACCEPT_OS Checks:</b><br/>
+            - Rollback Test passed (RB_Test = 1).<br/>
+            - Evolutionary Robustness confirmed (EVO_ROB = 1).<br/>
+            - Overall utility is not below minimum (E[J] >= U_min).<br/>
+            - All previous gates (E, F, G) passed.
+        ]
+    end
+    
+    subgraph "Step 5: Publication"
+        GatePub -- Yes --> Accept["Artifact Accepted and Published"];
+        GatePub -- No --> Reject;
+
+        DetailsPub[
+            <b>Gatepublish Checks:</b><br/>
+            - Aggregate quality score (U_fuzzy) is above threshold eta.
+        ]
+    end
+
+    style Reject fill:#ffcccc,stroke:#333,stroke-width:2px
+    style Accept fill:#ccffcc,stroke:#333,stroke-width:2px
+```
+
 ## How It Works
 
 GIOS operates as a runtime loop for reasoning and execution, similar to an OS kernel but tailored for cognitive tasks. Here's a high-level breakdown:
