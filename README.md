@@ -31,7 +31,7 @@ graph TD
         
         DetailsE[
             <b>ACCEPT_E Checks:</b><br/>
-            - WF_PartE rules are met (lexicon, dependencies, bias audit, etc.).<br/>
+            - WF_PartE rules are met: lexicon, dependencies, bias audit, etc.<br/>
             - Expected utility E[J] is non-decreasing.
         ]
     end
@@ -42,9 +42,9 @@ graph TD
 
         DetailsF[
             <b>ACCEPT_F Checks:</b><br/>
-            - WF_PartF rules are met (domain coverage, cluster purity).<br/>
-            - Link budget is not exceeded (Sum CL <= max_zeta).<br/>
-            - Complexity growth is in check (ExplodeIndex < max).
+            - WF_PartF rules are met: domain coverage, cluster purity.<br/>
+            - Link budget is not exceeded: Sum CL <= max_zeta.<br/>
+            - Complexity growth is in check: ExplodeIndex < max.
         ]
     end
 
@@ -54,7 +54,7 @@ graph TD
 
         DetailsG[
             <b>ACCEPT_G Checks:</b><br/>
-            - WF_G rules are met (glossary completeness).<br/>
+            - WF_G rules are met: glossary completeness.<br/>
             - All entities are catalogued and maps are bidirectional.
         ]
     end
@@ -65,10 +65,10 @@ graph TD
 
         DetailsOS[
             <b>ACCEPT_OS Checks:</b><br/>
-            - Rollback Test passed (RB_Test = 1).<br/>
-            - Evolutionary Robustness confirmed (EVO_ROB = 1).<br/>
-            - Overall utility is not below minimum (E[J] >= U_min).<br/>
-            - All previous gates (E, F, G) passed.
+            - Rollback Test passed: RB_Test = 1.<br/>
+            - Evolutionary Robustness confirmed: EVO_ROB = 1.<br/>
+            - Overall utility is not below minimum: E[J] >= U_min.<br/>
+            - All previous gates E, F, G passed.
         ]
     end
     
@@ -78,7 +78,7 @@ graph TD
 
         DetailsPub[
             <b>Gatepublish Checks:</b><br/>
-            - Aggregate quality score (U_fuzzy) is above threshold eta.
+            - Aggregate quality score U_fuzzy is above threshold eta.
         ]
     end
 
