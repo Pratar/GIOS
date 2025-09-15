@@ -32,7 +32,7 @@ graph TD
         DetailsE[
             <b>ACCEPT_E Checks:</b><br/>
             - WF_PartE rules are met: lexicon, dependencies, bias audit, etc.<br/>
-            - Expected utility E[J] is non-decreasing.
+            - Expected utility E of J is non-decreasing.
         ]
     end
 
@@ -67,7 +67,7 @@ graph TD
             <b>ACCEPT_OS Checks:</b><br/>
             - Rollback Test passed: RB_Test = 1.<br/>
             - Evolutionary Robustness confirmed: EVO_ROB = 1.<br/>
-            - Overall utility is not below minimum: E[J] >= U_min.<br/>
+            - Overall utility E of J is not below minimum U_min.<br/>
             - All previous gates E, F, G passed.
         ]
     end
