@@ -1,0 +1,20 @@
+name: build-latex
+on:
+  push:
+  pull_request:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: texlive/texlive:latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build PDF with latexmk
+        run: |
+          latexmk -pdf
+      - name: Upload PDFs
+        uses: actions/upload-artifact@v4
+        with:
+          name: pdfs
+          path: "*.pdf"
