@@ -19,7 +19,6 @@
 7. [Evolution and Adaptation](#evolution-and-adaptation)
 8. [Implementation Guidelines](#implementation-guidelines)
 9. [Performance Metrics](#performance-metrics)
-10. [Troubleshooting Guide](#troubleshooting-guide)
 
 ---
 
@@ -67,9 +66,143 @@ graph TB
     G -->|No| I[Safe Mode]
     I --> J[Recovery]
     J --> C
-    H --> K[Log & Learn]
-    K --> L[Update Policy]
-    L --> C
+    H --> K[Update Policy]
+    K --> C
+```
+
+### Context and Artifact Relationships
+
+```mermaid
+graph LR
+    subgraph "Contexts (Rooms)"
+        C1[Context 1]
+        C2[Context 2]
+        C3[Context 3]
+    end
+    
+    subgraph "Artifacts"
+        A1[Artifact 1]
+        A2[Artifact 2]
+        A3[Artifact 3]
+        A4[Artifact 4]
+    end
+    
+    subgraph "Policies"
+        P1[Policy 1]
+        P2[Policy 2]
+        P3[Policy 3]
+    end
+    
+    C1 --> A1
+    C1 --> A2
+    C2 --> A2
+    C2 --> A3
+    C3 --> A3
+    C3 --> A4
+    
+    C1 --> P1
+    C2 --> P2
+    C3 --> P3
+```
+
+### Well-Formedness Constraints
+
+```mermaid
+graph TD
+    A[System Input] --> B[WF_PartE Check]
+    B --> C[WF_PartF Check]
+    C --> D[WF_G Check]
+    D --> E{All Pass?}
+    E -->|Yes| F[Execute Policy]
+    E -->|No| G[Reject Input]
+    
+    subgraph "WF_PartE: Structural Integrity"
+        B1[E.1: Lexical Firewall]
+        B2[E.2: Notational Independence]
+        B3[E.3: Unidirectional Dependencies]
+        B4[E.4: Bias Audit]
+        B5[E.5: DRR Trace]
+    end
+    
+    subgraph "WF_PartF: Domain Coverage"
+        C1[Domain Coverage]
+        C2[Cluster Cohesion]
+        C3[Link Budget]
+        C4[Bridge Schema]
+    end
+    
+    subgraph "WF_G: Glossary Completeness"
+        D1[Glossary Completeness]
+        D2[Bidirectional Navigation]
+        D3[Readability Optimization]
+    end
+```
+
+### Safe Mode Automaton
+
+```mermaid
+stateDiagram-v2
+    [*] --> RUN
+    RUN --> SAFE : U_t < U_min OR ErrRate_t > ε_max
+    SAFE --> RECOVER : ErrRate_t ≤ ε_max AND (t - t_SAFE) ≥ h
+    RECOVER --> RUN : Recovery successful
+    RECOVER --> SAFE : Recovery failed
+    SAFE --> [*] : System shutdown
+```
+
+### Policy Composition and Evolution
+
+```mermaid
+graph TB
+    subgraph "Policy Composition"
+        P1[Policy 1] --> C1[Sequential: P2 ∘ P1]
+        P2[Policy 2] --> C1
+        P3[Policy 3] --> C2[Parallel: P3 ∥ P4]
+        P4[Policy 4] --> C2
+    end
+    
+    subgraph "Evolution Process"
+        E1[Current Config κ_t] --> E2[Admissible Change δ_t]
+        E2 --> E3[Transition T(κ_t, δ_t)]
+        E3 --> E4[New Config κ_{t+1}]
+        E4 --> E5[Evolutionary Robustness Check]
+        E5 --> E6{EVO_ROB = 1?}
+        E6 -->|Yes| E7[Accept Evolution]
+        E6 -->|No| E8[Reject Evolution]
+    end
+    
+    C1 --> E1
+    C2 --> E1
+```
+
+### Quality Metrics and Acceptance Gates
+
+```mermaid
+graph TD
+    A[System Output] --> B[Quality Metrics Calculation]
+    B --> C[Accuracy Check]
+    B --> D[Precision Check]
+    B --> E[Recall Check]
+    B --> F[F1 Score Check]
+    B --> G[Specificity Check]
+    
+    C --> H[Fuzzy Aggregation]
+    D --> H
+    E --> H
+    F --> H
+    G --> H
+    
+    H --> I[ACCEPT_E Gate]
+    H --> J[ACCEPT_F Gate]
+    H --> K[ACCEPT_G Gate]
+    
+    I --> L[Unified Acceptance Gate]
+    J --> L
+    K --> L
+    
+    L --> M{ACCEPT_OS = 1?}
+    M -->|Yes| N[Deploy/Execute]
+    M -->|No| O[Reject/Improve]
 ```
 
 ### Core Mathematical Model
@@ -85,6 +218,32 @@ subject to: WF_PartE = 1, WF_PartF = 1, WF_G = 1
 - **E[J(π(x,c))]**: Expected utility of policy π given input x in context c
 - **λ_read * Read(a)**: Cost of reading artifact a (penalty for complexity)
 - **WF_PartE, WF_PartF, WF_G**: Well-formedness constraints ensuring system integrity
+
+### Mathematical Foundation Diagram
+
+```mermaid
+graph TD
+    subgraph "Optimization Objective"
+        A[Input x] --> B[Context c]
+        B --> C[Policy π]
+        C --> D[Action y]
+        D --> E[Utility J]
+        E --> F[Expected Utility E[J]]
+        F --> G[Read Cost λ_read * Read(a)]
+        G --> H[Final Objective: E[J] - λ_read * Read(a)]
+    end
+    
+    subgraph "Constraints"
+        I[WF_PartE = 1<br/>Structural Integrity]
+        J[WF_PartF = 1<br/>Domain Coverage]
+        K[WF_G = 1<br/>Glossary Completeness]
+    end
+    
+    H --> L[Maximize Subject to Constraints]
+    I --> L
+    J --> L
+    K --> L
+```
 
 ---
 
@@ -282,16 +441,36 @@ At step t:
 1. Observe o_t
 2. Pick y_t ~ π(·|o_t, c)
 3. Apply y_t
-4. Log (o_t, y_t, c)
-5. Terminate if U_t < U_min or enter safe mode
+4. Terminate if U_t < U_min or enter safe mode
 ```
 
 **Step-by-step explanation:**
 1. **Observe**: System receives input from environment
 2. **Pick**: Policy selects action based on input and context
 3. **Apply**: Action is executed in the environment
-4. **Log**: All actions are recorded for analysis
-5. **Terminate/Safe**: System stops if utility drops too low
+4. **Terminate/Safe**: System stops if utility drops too low
+
+### Runtime Loop Diagram
+
+```mermaid
+sequenceDiagram
+    participant E as Environment
+    participant S as System
+    participant P as Policy
+    participant Q as Quality Check
+    
+    E->>S: Input o_t
+    S->>P: (o_t, c)
+    P->>S: Action y_t ~ π(·|o_t, c)
+    S->>E: Apply y_t
+    S->>Q: Check utility U_t
+    alt U_t < U_min OR ErrRate_t > ε_max
+        Q->>S: Enter SAFE mode
+    else U_t ≥ U_min AND ErrRate_t ≤ ε_max
+        Q->>S: Continue RUN mode
+        S->>S: Update policy if needed
+    end
+```
 
 ### 2. Safe Mode Automaton
 
@@ -356,6 +535,44 @@ ACCEPT_OS = 1 ⇔ ACCEPT_E = 1 ∧ ACCEPT_F = 1 ∧ ACCEPT_G = 1 ∧ RB_Test = 1
 **Purpose**: Single gate for all quality checks
 **Why needed**: Simplifies deployment process
 **Implementation**: Comprehensive validation pipeline
+
+### Quality Assurance Flow Diagram
+
+```mermaid
+graph TD
+    subgraph "Quality Metrics Calculation"
+        A[System Output] --> B[Calculate Accuracy]
+        A --> C[Calculate Precision]
+        A --> D[Calculate Recall]
+        A --> E[Calculate F1 Score]
+        A --> F[Calculate Specificity]
+        A --> G[Calculate FPR/FNR]
+    end
+    
+    subgraph "Fuzzy Aggregation"
+        B --> H[Fuzzy Aggregation U_fuzzy]
+        C --> H
+        D --> H
+        E --> H
+        F --> H
+        G --> H
+    end
+    
+    subgraph "Acceptance Gates"
+        H --> I[ACCEPT_E Gate]
+        H --> J[ACCEPT_F Gate]
+        H --> K[ACCEPT_G Gate]
+        I --> L[Unified Acceptance Gate]
+        J --> L
+        K --> L
+    end
+    
+    subgraph "Final Decision"
+        L --> M{ACCEPT_OS = 1?}
+        M -->|Yes| N[Deploy/Execute]
+        M -->|No| O[Reject/Improve]
+    end
+```
 
 ### 2. Quality Metrics
 
@@ -427,6 +644,39 @@ U_fuzzy = Σ_i ν_i μ_i(m_i)
 - **Adaptation**: System must adapt to changing requirements
 - **Improvement**: System should get better over time
 - **Resilience**: System must handle unexpected changes
+
+### Evolution Process Diagram
+
+```mermaid
+graph TD
+    subgraph "Evolution Cycle"
+        A[Current Config κ_t] --> B[Identify Change δ_t]
+        B --> C[Check Admissibility]
+        C --> D{δ_t ∈ D_adm?}
+        D -->|Yes| E[Apply Transition T(κ_t, δ_t)]
+        D -->|No| F[Reject Change]
+        E --> G[New Config κ_{t+1}]
+        G --> H[Check Evolutionary Robustness]
+        H --> I{EVO_ROB = 1?}
+        I -->|Yes| J[Accept Evolution]
+        I -->|No| K[Rollback to κ_t]
+        J --> L[Update System]
+        K --> M[Analyze Failure]
+        M --> B
+    end
+    
+    subgraph "Robustness Checks"
+        N[WF_PartE = 1]
+        O[WF_PartF = 1]
+        P[WF_G = 1]
+        Q[E[J(κ_{t+1})] ≥ E[J(κ_t)] - ε_evo]
+    end
+    
+    H --> N
+    H --> O
+    H --> P
+    H --> Q
+```
 
 ### 2. Evolutionary Robustness
 
@@ -609,88 +859,9 @@ ErrRate ≤ ε_max
 - **Peak CPU**: < 80%
 
 #### Storage Usage
-- **Logs**: < 1GB/day
 - **Artifacts**: < 10GB total
 - **Backups**: < 100GB total
 
----
-
-## Troubleshooting Guide
-
-### 1. Common Issues
-
-#### High Error Rate
-**Symptoms**: ErrRate > ε_max
-**Causes**: 
-- Policy errors
-- Context conflicts
-- Resource exhaustion
-**Solutions**:
-- Check policy logic
-- Verify context isolation
-- Monitor resource usage
-- Enter safe mode if needed
-
-#### Low Utility
-**Symptoms**: E[J] < U_min
-**Causes**:
-- Poor policy performance
-- Inadequate training data
-- Context mismatch
-**Solutions**:
-- Update policies
-- Improve training data
-- Verify context mapping
-- Consider evolution
-
-#### Safe Mode Stuck
-**Symptoms**: System stuck in SAFE mode
-**Causes**:
-- Persistent errors
-- Insufficient recovery time
-- Policy conflicts
-**Solutions**:
-- Analyze error logs
-- Increase recovery time
-- Resolve policy conflicts
-- Manual intervention
-
-### 2. Debugging Tools
-
-#### Log Analysis
-- **Error Logs**: Track all errors and exceptions
-- **Performance Logs**: Monitor runtime metrics
-- **Decision Logs**: Record all policy decisions
-- **Evolution Logs**: Track system changes
-
-#### Monitoring Dashboards
-- **Real-time Metrics**: Current system status
-- **Historical Trends**: Performance over time
-- **Quality Metrics**: Accuracy and fairness
-- **Resource Usage**: CPU, memory, storage
-
-### 3. Recovery Procedures
-
-#### Automatic Recovery
-1. System enters SAFE mode
-2. Error analysis begins
-3. Recovery strategies attempted
-4. System returns to RUN mode
-
-#### Manual Recovery
-1. Stop system
-2. Analyze logs
-3. Fix identified issues
-4. Restart system
-5. Verify functionality
-
-#### Emergency Procedures
-1. Immediate system shutdown
-2. Backup current state
-3. Restore from last known good state
-4. Investigate root cause
-5. Implement fixes
-6. Gradual system restart
 
 ---
 
